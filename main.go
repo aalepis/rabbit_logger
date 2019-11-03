@@ -1,8 +1,8 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/a.alepis/rabbit_logger/client"
@@ -11,9 +11,22 @@ import (
 func main() {
 	fmt.Println("Starting rabbit logger...")
 
-	client := client.NewClient(os.Args[2], os.Args[3], os.Args[4])
+	queuePtr := flag.String("queue", "noqueue", "The name of the queue to log")
+	urlPtr := flag.String("url", "0.0.0.0:5672", "RabbitMq URL:PORT")
+	usernamePtr := flag.String("username", "guest", "RabbitMq username")
+	passwordPtr := flag.String("password", "guest", "RabbitMq password")
 
-	msgs, _ := client.Channel.Consume(os.Args[1], "", false, false, false, false, nil)
+	flag.Parse()
+
+	client := client.NewClient(*urlPtr, *usernamePtr, *passwordPtr)
+
+	msgs, err := client.Channel.Consume(*queuePtr, "", false, false, false, false, nil)
+
+	if err == nil {
+		fmt.Println("Consuming from queue: " + *queuePtr)
+	} else {
+		panic("Could not consume from queue: " + *queuePtr)
+	}
 
 	for msg := range msgs {
 		log := fmt.Sprintf("[%s] %s", time.Now().Format(time.UnixDate), string(msg.Body))
